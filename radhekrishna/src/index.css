@@ -1,9 +1,20 @@
-* {
-  box-sizing: border-box;
+@import "tailwindcss";
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #ffffff;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}
+
