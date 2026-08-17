@@ -10,7 +10,10 @@ import {
   Shield,
   HelpCircle,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Store,
+  Sparkles,
+  Calendar
 } from 'lucide-react';
 
 export default function ProfileDrawer({
@@ -18,6 +21,8 @@ export default function ProfileDrawer({
   onClose,
   onOpenOffers,
   onOpenBookings,
+  onOpenOwnerDashboard,
+  onOpenAuth,
 }) {
   if (!isOpen) return null;
 
@@ -66,13 +71,13 @@ export default function ProfileDrawer({
           <button
             onClick={() => {
               onClose();
-              onOpenBookings();
+              if (onOpenBookings) onOpenBookings();
             }}
             className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors text-slate-800"
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                <CreditCard className="w-4 h-4" />
+                <Calendar className="w-4 h-4" />
               </div>
               <span className="font-semibold text-xs">My Appointments</span>
             </div>
@@ -82,7 +87,7 @@ export default function ProfileDrawer({
           <button
             onClick={() => {
               onClose();
-              onOpenOffers();
+              if (onOpenOffers) onOpenOffers();
             }}
             className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors text-slate-800"
           >
@@ -91,6 +96,26 @@ export default function ProfileDrawer({
                 <Gift className="w-4 h-4" />
               </div>
               <span className="font-semibold text-xs">Promotions & Vouchers</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
+
+          {/* Salon Owner Dashboard entry */}
+          <button
+            onClick={() => {
+              onClose();
+              if (onOpenOwnerDashboard) onOpenOwnerDashboard();
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-xs"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center">
+                <Store className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <span className="font-bold text-xs block">Salon Partner Dashboard</span>
+                <span className="text-[10px] text-blue-300">Manage queue, staff & revenue</span>
+              </div>
             </div>
             <ChevronRight className="w-4 h-4 text-slate-400" />
           </button>
@@ -123,14 +148,17 @@ export default function ProfileDrawer({
 
         </div>
 
-        {/* Footer / Logout */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50">
+        {/* Footer / Login or Logout */}
+        <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
           <button
-            onClick={onClose}
-            className="w-full py-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2"
+            onClick={() => {
+              onClose();
+              if (onOpenAuth) onOpenAuth();
+            }}
+            className="flex-1 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2"
           >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
+            <User className="w-4 h-4" />
+            <span>Switch Account / Sign In</span>
           </button>
         </div>
 

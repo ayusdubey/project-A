@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarCheck, ChevronRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { CalendarCheck, ChevronRight, Sparkles, ShieldCheck, Flame, Tag } from 'lucide-react';
 
 const HERO_SLIDES = [
   {
@@ -10,6 +10,8 @@ const HERO_SLIDES = [
     subtitle: 'Book top-rated stylists & salons near you in seconds. Verified hygiene & transparent pricing.',
     image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80',
     ctaText: 'Book Appointment',
+    route: 'book-appointment',
+    icon: CalendarCheck,
   },
   {
     id: 2,
@@ -19,6 +21,8 @@ const HERO_SLIDES = [
     subtitle: 'From signature fades to organic facials and bridal transformations with master artists.',
     image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=80',
     ctaText: 'Explore Styles',
+    route: 'explore-styles',
+    icon: Flame,
   },
   {
     id: 3,
@@ -28,20 +32,29 @@ const HERO_SLIDES = [
     subtitle: 'Enjoy up to 40% OFF on all signature salon packages with verified cleanliness standard.',
     image: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=1200&q=80',
     ctaText: 'Grab 40% Discount',
+    route: 'offers',
+    icon: Tag,
   },
 ];
 
-export default function HeroBanner({ onBookAppointment }) {
+export default function HeroBanner({ onNavigate }) {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
-    }, 6000);
+    }, 5500);
     return () => clearInterval(timer);
   }, []);
 
   const slide = HERO_SLIDES[currentSlide];
+  const IconComponent = slide.icon;
+
+  const handleHeroAction = () => {
+    if (onNavigate) {
+      onNavigate(slide.route);
+    }
+  };
 
   return (
     <section id="hero-banner-section" className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-4 pb-2">
@@ -74,14 +87,14 @@ export default function HeroBanner({ onBookAppointment }) {
               {slide.subtitle}
             </p>
 
-            {/* Action CTA Button */}
+            {/* Action CTA Button with dynamic per-slide routing */}
             <div className="flex items-center gap-3">
               <button
-                id="btn-hero-book-appointment"
-                onClick={onBookAppointment}
+                id="btn-hero-action-slide"
+                onClick={handleHeroAction}
                 className="inline-flex items-center justify-center gap-2 bg-white hover:bg-blue-50 text-blue-700 font-bold text-xs sm:text-sm px-5 py-2.5 rounded-full shadow-lg shadow-black/10 active:scale-95 transition-all duration-150"
               >
-                <CalendarCheck className="w-4 h-4 text-blue-600" />
+                <IconComponent className="w-4 h-4 text-blue-600" />
                 <span>{slide.ctaText}</span>
               </button>
             </div>
@@ -89,7 +102,10 @@ export default function HeroBanner({ onBookAppointment }) {
 
           {/* Right Styling Model Photo Graphic */}
           <div className="col-span-5 sm:col-span-5 relative flex justify-end items-center">
-            <div className="relative w-28 h-36 sm:w-44 sm:h-52 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/30 transform sm:rotate-2 hover:rotate-0 transition-transform duration-300">
+            <div
+              onClick={handleHeroAction}
+              className="cursor-pointer relative w-28 h-36 sm:w-44 sm:h-52 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/30 transform sm:rotate-2 hover:rotate-0 transition-transform duration-300"
+            >
               <img
                 src={slide.image}
                 alt="Salon Stylist Experience"

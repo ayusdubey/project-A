@@ -48,11 +48,11 @@ export default function ServicesGrid({
           <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
             Our Services
           </h2>
-          <p className="text-xs text-slate-500">Pick a category to explore nearby salons</p>
+          <p className="text-xs text-slate-500">Pick a category to explore specialized services & salons</p>
         </div>
         <button
           id="btn-view-all-services"
-          onClick={onViewAllServices}
+          onClick={() => onViewAllServices('all')}
           className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 active:scale-95 transition-all p-1"
         >
           <span>See all</span>
@@ -69,11 +69,16 @@ export default function ServicesGrid({
               key={category.id}
               id={`service-card-${category.id}`}
               onClick={() => {
-                if (category.id === 'more') {
-                  onViewAllServices();
-                } else {
-                  onSelectCategory(category.id === selectedCategory ? 'all' : category.id);
-                }
+                const categoryMapping = {
+                  scissors: 'haircut',
+                  beard: 'beard',
+                  facial: 'facial',
+                  'hair-color': 'hair-color',
+                  waxing: 'waxing',
+                  more: 'all',
+                };
+                const catParam = categoryMapping[category.id] || category.id;
+                onViewAllServices(catParam);
               }}
               className={`group flex flex-col items-center justify-center p-3 sm:p-3.5 rounded-2xl border transition-all duration-200 text-center ${
                 isSelected

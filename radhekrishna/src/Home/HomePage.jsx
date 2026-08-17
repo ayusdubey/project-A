@@ -17,9 +17,16 @@ import NotificationModal from './NotificationModal';
 import AllServicesModal from './AllServicesModal';
 import { INITIAL_SALONS, INITIAL_NOTIFICATIONS } from './mockData';
 
-export default function HomePage() {
+export default function HomePage({
+  onNavigate,
+  userBookings = [],
+  onCancelBooking,
+  salons = INITIAL_SALONS,
+  onToggleFavorite,
+  currentUser,
+  onOpenAuth,
+}) {
   // Global / Home States
-  const [salons, setSalons] = useState(INITIAL_SALONS);
   const [selectedCity, setSelectedCity] = useState('Indore');
   const [selectedArea, setSelectedArea] = useState('Vijay Nagar');
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,60 +34,31 @@ export default function HomePage() {
   const [selectedGender, setSelectedGender] = useState('all');
   const [activeNavTab, setActiveNavTab] = useState('home');
 
-  // Bookings state
-  const [userBookings, setUserBookings] = useState([
-    {
-      id: 'BK-892140',
-      salonId: 'looks-salon',
-      salonName: 'Looks Salon',
-      salonAddress: 'Plot 14, Ring Road, Vijay Nagar',
-      salonImage: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
-      serviceName: 'Signature Haircut & Wash',
-      servicePrice: 349,
-      date: 'Tomorrow (16 Aug)',
-      time: '11:00 AM',
-      stylistName: 'Aarav Sharma',
-      status: 'confirmed',
-      createdAt: new Date().toISOString(),
-    },
-  ]);
-
   // Notifications State
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
 
   // Modals and Drawers visibility states
-  const [selectedSalonForBooking, setSelectedSalonForBooking] = useState(null);
-  const [preselectedService, setPreselectedService] = useState(null);
-  const [selectedSalonDetail, setSelectedSalonDetail] = useState(null);
-  const [isOffersOpen, setIsOffersOpen] = useState(false);
-  const [isBookingsDrawerOpen, setIsBookingsDrawerOpen] = useState(false);
   const [isFavoritesDrawerOpen, setIsFavoritesDrawerOpen] = useState(false);
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isAllServicesOpen, setIsAllServicesOpen] = useState(false);
 
-  // Toggle favorite status for salons
-  const handleToggleFavorite = (salonId) => {
-    setSalons((prev) =>
-      prev.map((s) => (s.id === salonId ? { ...s, isFavorite: !s.isFavorite } : s))
-    );
-  };
-
-  // Quick book trigger
+  // Quick book trigger -> navigates to book appointment page
   const handleQuickBook = (salon, service = null) => {
-    setSelectedSalonForBooking(salon);
-    setPreselectedService(service);
+    if (onNavigate) {
+      onNavigate('book-appointment', {
+        initialSalonId: salon.id,
+        preselectedService: service,
+      });
+    }
   };
 
-  // Confirm booking handler
-  const handleConfirmBooking = (newBooking) => {
-    setUserBookings((prev) => [newBooking, ...prev]);
-  };
-
-  // Cancel booking handler
-  const handleCancelBooking = (bookingId) => {
-    setUserBookings((prev) => prev.filter((b) => b.id !== bookingId));
+  const handleSelectSalonDetail = (salon) => {
+    if (onNavigate) {
+      onNavigate('salon-detail', {
+        salonId: salon.id,
+      });
+    }
   };
 
   // Notifications Mark All Read
@@ -98,11 +76,11 @@ export default function HomePage() {
   // Filter salons logic
   const filteredSalons = useMemo(() => {
     return salons.filter((salon) => {
-      // Search matching (salon name, address, or service names)
+      // Search matching
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesName = salon.name.toLowerCase().includes(q);
-        const matchesAddress = salon.address.toLowerCase().includes(q);
+        const matchesAddress = salon.address?.toLowerCase().includes(q) || salon.location?.toLowerCase().includes(q);
         const matchesService = salon.services?.some((s) => s.name.toLowerCase().includes(q));
         if (!matchesName && !matchesAddress && !matchesService) return false;
       }
@@ -110,7 +88,7 @@ export default function HomePage() {
       // Category matching
       if (selectedCategory !== 'all') {
         const hasServiceInCategory = salon.services?.some(
-          (s) => s.category.toLowerCase() === selectedCategory.toLowerCase()
+          (s) => s.category?.toLowerCase() === selectedCategory.toLowerCase()
         );
         if (!hasServiceInCategory) return false;
       }
@@ -131,12 +109,12 @@ export default function HomePage() {
   // Handle Tab navigation
   const handleTabChange = (tabId) => {
     setActiveNavTab(tabId);
-    if (tabId === 'bookings') {
-      setIsBookingsDrawerOpen(true);
+    if (tabId === 'offers') {
+      if (onNavigate) onNavigate('offers');
+    } else if (tabId === 'bookings') {
+      if (onNavigate) onNavigate('my-bookings');
     } else if (tabId === 'favorites') {
       setIsFavoritesDrawerOpen(true);
-    } else if (tabId === 'offers') {
-      setIsOffersOpen(true);
     } else if (tabId === 'profile') {
       setIsProfileDrawerOpen(true);
     }
@@ -158,41 +136,65 @@ export default function HomePage() {
         onOpenSideMenu={() => setIsSideMenuOpen(true)}
         onOpenProfile={() => setIsProfileDrawerOpen(true)}
         activeFilterGender={selectedGender}
-        onFilterGender={setSelectedGender}
+        onFilterGender={(gender) => {
+          if (gender === 'men' || gender === 'women') {
+            if (onNavigate) onNavigate('gender-services', { gender });
+          } else {
+            setSelectedGender(gender);
+          }
+        }}
       />
 
       {/* Main Home Page Body */}
       <main className="flex-1 w-full">
         
-        {/* 1. Hero Royal Blue Banner with Model Photo & CTA */}
+        {/* 1. Hero Royal Blue Banner with Model Photo & Dynamic Slides CTA */}
         <HeroBanner
-          onBookAppointment={() => handleQuickBook(salons[0])}
+          onNavigate={onNavigate}
         />
 
-        {/* 2. Special Offers Floating Banner */}
+        {/* 2. Special Offers Banner -> Navigates to Offers Page */}
         <OffersBanner
-          onOpenOffers={() => setIsOffersOpen(true)}
+          onOpenOffers={() => {
+            if (onNavigate) onNavigate('offers');
+          }}
         />
 
-        {/* 3. Our Services 6-Grid Category Selector */}
+        {/* 3. Our Services 6-Grid -> Navigates to Services Page */}
         <ServicesGrid
           selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-          onViewAllServices={() => setIsAllServicesOpen(true)}
+          onSelectCategory={(cat) => {
+            if (onNavigate) {
+              onNavigate('services', { category: cat });
+            } else {
+              setSelectedCategory(cat);
+            }
+          }}
+          onViewAllServices={(cat) => {
+            if (onNavigate) {
+              onNavigate('services', { category: cat || 'all' });
+            }
+          }}
         />
 
-        {/* 4. For Men & For Women Dual Banners */}
+        {/* 4. For Men & For Women Dual Banners -> Navigates to Gender Services Page */}
         <GenderBanners
           activeGender={selectedGender}
-          onSelectGender={(g) => setSelectedGender(g === selectedGender ? 'all' : g)}
+          onExploreGender={(gender) => {
+            if (onNavigate) {
+              onNavigate('gender-services', { gender });
+            } else {
+              setSelectedGender(gender);
+            }
+          }}
         />
 
-        {/* 5. Popular Salons Near You Grid & Heart Favorites */}
+        {/* 5. Popular Salons Near You Grid & Heart Favorites -> Navigates to Salon Page */}
         <PopularSalons
           salons={filteredSalons}
-          onToggleFavorite={handleToggleFavorite}
-          onSelectSalon={(s) => setSelectedSalonDetail(s)}
-          onQuickBook={(s) => handleQuickBook(s)}
+          onToggleFavorite={onToggleFavorite}
+          onSelectSalon={handleSelectSalonDetail}
+          onQuickBook={handleQuickBook}
           filterCategory={selectedCategory}
           filterGender={selectedGender}
           searchQuery={searchQuery}
@@ -209,58 +211,7 @@ export default function HomePage() {
         bookingsCount={userBookings.length}
       />
 
-      {/* --- Modals & Drawers --- */}
-
-      {/* Booking Appointment Modal */}
-      {selectedSalonForBooking && (
-        <BookingModal
-          salon={selectedSalonForBooking}
-          initialService={preselectedService}
-          onClose={() => {
-            setSelectedSalonForBooking(null);
-            setPreselectedService(null);
-          }}
-          onConfirmBooking={handleConfirmBooking}
-        />
-      )}
-
-      {/* Salon Details Modal */}
-      {selectedSalonDetail && (
-        <SalonDetailModal
-          salon={selectedSalonDetail}
-          onClose={() => setSelectedSalonDetail(null)}
-          onBookService={(salon, service) => {
-            setSelectedSalonDetail(null);
-            handleQuickBook(salon, service);
-          }}
-          onToggleFavorite={handleToggleFavorite}
-        />
-      )}
-
-      {/* Special Offers / Coupons Modal */}
-      {isOffersOpen && (
-        <OffersModal
-          onClose={() => {
-            setIsOffersOpen(false);
-            setActiveNavTab('home');
-          }}
-          onApplyOffer={(code) => {
-            setIsOffersOpen(false);
-            handleQuickBook(salons[0]);
-          }}
-        />
-      )}
-
-      {/* Bookings Drawer */}
-      <BookingsDrawer
-        isOpen={isBookingsDrawerOpen}
-        onClose={() => {
-          setIsBookingsDrawerOpen(false);
-          setActiveNavTab('home');
-        }}
-        bookings={userBookings}
-        onCancelBooking={handleCancelBooking}
-      />
+      {/* --- Drawers & Overlays --- */}
 
       {/* Favorites Drawer */}
       <FavoritesDrawer
@@ -270,8 +221,11 @@ export default function HomePage() {
           setActiveNavTab('home');
         }}
         favoriteSalons={favoriteSalons}
-        onSelectSalon={(s) => setSelectedSalonDetail(s)}
-        onRemoveFavorite={handleToggleFavorite}
+        onRemoveFavorite={onToggleFavorite}
+        onBookSalon={(salon) => {
+          setIsFavoritesDrawerOpen(false);
+          handleQuickBook(salon);
+        }}
       />
 
       {/* Profile Drawer */}
@@ -281,16 +235,45 @@ export default function HomePage() {
           setIsProfileDrawerOpen(false);
           setActiveNavTab('home');
         }}
-        onOpenOffers={() => setIsOffersOpen(true)}
-        onOpenBookings={() => setIsBookingsDrawerOpen(true)}
+        bookingsCount={userBookings.length}
+        favoritesCount={favoriteSalons.length}
+        onOpenBookings={() => {
+          setIsProfileDrawerOpen(false);
+          if (onNavigate) onNavigate('my-bookings');
+        }}
+        onOpenFavorites={() => {
+          setIsProfileDrawerOpen(false);
+          setIsFavoritesDrawerOpen(true);
+        }}
+        onOpenOffers={() => {
+          setIsProfileDrawerOpen(false);
+          if (onNavigate) onNavigate('offers');
+        }}
+        onOpenOwnerDashboard={() => {
+          setIsProfileDrawerOpen(false);
+          if (onNavigate) onNavigate('owner-dashboard');
+        }}
+        onOpenAuth={() => {
+          setIsProfileDrawerOpen(false);
+          if (onOpenAuth) onOpenAuth('login');
+        }}
       />
 
       {/* Side Menu Drawer */}
       <SideMenuDrawer
         isOpen={isSideMenuOpen}
         onClose={() => setIsSideMenuOpen(false)}
-        onOpenOffers={() => setIsOffersOpen(true)}
-        onOpenBookings={() => setIsBookingsDrawerOpen(true)}
+        onNavigate={onNavigate}
+        currentUser={currentUser}
+        onOpenAuth={onOpenAuth}
+        onOpenOffers={() => {
+          setIsSideMenuOpen(false);
+          if (onNavigate) onNavigate('offers');
+        }}
+        onOpenBookings={() => {
+          setIsSideMenuOpen(false);
+          if (onNavigate) onNavigate('my-bookings');
+        }}
       />
 
       {/* Notifications Modal */}
@@ -298,14 +281,15 @@ export default function HomePage() {
         isOpen={isNotificationsOpen}
         onClose={() => setIsNotificationsOpen(false)}
         notifications={notifications}
-        onMarkAllRead={handleMarkAllNotificationsRead}
-      />
-
-      {/* All Services Extended Modal */}
-      <AllServicesModal
-        isOpen={isAllServicesOpen}
-        onClose={() => setIsAllServicesOpen(false)}
-        onSelectCategory={(catId) => setSelectedCategory(catId)}
+        onMarkAllAsRead={handleMarkAllNotificationsRead}
+        onNavigateNotification={(item) => {
+          setIsNotificationsOpen(false);
+          if (item.type === 'offer' && onNavigate) {
+            onNavigate('offers');
+          } else if (item.type === 'booking' && onNavigate) {
+            onNavigate('my-bookings');
+          }
+        }}
       />
 
     </div>

@@ -1,0 +1,6 @@
+{
+  "name": "AAORA - Salon Appointment Platform",
+  "description": "Production-ready salon appointment booking platform featuring barber-specific scheduling, real-time availability engine, digital QR check-in pass, and strict role-based access control for Customers, Salon Partners, and Admins.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

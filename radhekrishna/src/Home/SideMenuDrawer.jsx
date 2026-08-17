@@ -8,7 +8,11 @@ import {
   FileText,
   ShieldCheck,
   Building,
-  HeartHandshake
+  HeartHandshake,
+  ShieldAlert,
+  Scissors,
+  LogOut,
+  UserCheck
 } from 'lucide-react';
 
 export default function SideMenuDrawer({
@@ -16,6 +20,9 @@ export default function SideMenuDrawer({
   onClose,
   onOpenOffers,
   onOpenBookings,
+  onNavigate,
+  currentUser,
+  onOpenAuth,
 }) {
   if (!isOpen) return null;
 
@@ -24,15 +31,17 @@ export default function SideMenuDrawer({
       <div className="w-full max-w-xs sm:max-w-sm bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
         
         {/* Brand Header */}
-        <div className="p-5 bg-gradient-to-r from-blue-700 to-blue-900 text-white flex items-center justify-between">
+        <div className="p-5 bg-gradient-to-r from-blue-700 via-blue-800 to-indigo-900 text-white flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xl font-black tracking-wider text-white">AAORA</span>
-              <span className="text-[10px] bg-blue-500/40 text-blue-100 font-bold px-2 py-0.5 rounded-full">
-                Salon & Spa
+              <span className="text-[10px] bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded-full">
+                {currentUser?.role ? currentUser.role.toUpperCase() : 'CUSTOMER'}
               </span>
             </div>
-            <p className="text-xs text-blue-200 mt-0.5">Look Good. Feel Amazing.</p>
+            <p className="text-xs text-blue-200 mt-0.5">
+              {currentUser ? currentUser.name : 'Salon & Grooming Platform'}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -47,50 +56,100 @@ export default function SideMenuDrawer({
           
           <div className="pb-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3">
-              Explore & Book
+              Customer Portals
             </span>
           </div>
 
           <button
             onClick={() => {
               onClose();
-              onOpenBookings();
+              if (onOpenBookings) onOpenBookings();
+              else if (onNavigate) onNavigate('my-bookings');
             }}
-            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 text-slate-800 font-semibold transition-colors"
+            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 text-slate-800 font-semibold transition-colors text-left"
           >
             <Sparkles className="w-4 h-4 text-blue-600" />
-            <span>My Appointments</span>
+            <span>My Bookings & QR Pass</span>
           </button>
 
           <button
             onClick={() => {
               onClose();
-              onOpenOffers();
+              if (onOpenOffers) onOpenOffers();
+              else if (onNavigate) onNavigate('offers');
             }}
-            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 text-slate-800 font-semibold transition-colors"
+            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 text-slate-800 font-semibold transition-colors text-left"
           >
             <Award className="w-4 h-4 text-blue-600" />
-            <span>Deals & Discount Coupons</span>
+            <span>Exclusive Deals & Coupons</span>
+          </button>
+
+          <button
+            onClick={() => {
+              onClose();
+              if (onNavigate) onNavigate('explore-styles');
+            }}
+            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 text-slate-800 font-semibold transition-colors text-left"
+          >
+            <Scissors className="w-4 h-4 text-blue-600" />
+            <span>Trending Hairstyles Lookbook</span>
+          </button>
+
+          {/* Role Based Portals */}
+          <div className="pt-4 pb-2 border-t border-slate-100">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3">
+              Role Portals & Dashboards
+            </span>
+          </div>
+
+          <button
+            onClick={() => {
+              onClose();
+              if (onNavigate) onNavigate('owner-dashboard');
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors text-left shadow-xs"
+          >
+            <div className="flex items-center gap-2.5">
+              <Store className="w-4 h-4 text-amber-400" />
+              <span>Salon Owner Dashboard</span>
+            </div>
+            <span className="text-[10px] bg-indigo-500/40 text-indigo-200 px-2 py-0.5 rounded-full font-bold">
+              Partner
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              onClose();
+              if (onNavigate) onNavigate('admin-dashboard');
+            }}
+            className="w-full flex items-center justify-between p-3 rounded-xl bg-rose-950 text-rose-100 font-semibold hover:bg-rose-900 transition-colors text-left border border-rose-900/60 shadow-xs"
+          >
+            <div className="flex items-center gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-rose-400" />
+              <span>Super Admin Portal</span>
+            </div>
+            <span className="text-[10px] bg-rose-500/40 text-rose-200 px-2 py-0.5 rounded-full font-bold">
+              Admin
+            </span>
           </button>
 
           <div className="pt-4 pb-2 border-t border-slate-100">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3">
-              For Salon Partners
+              Account Switcher
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-            <div className="flex items-center gap-2 mb-1">
-              <Store className="w-4 h-4 text-blue-600" />
-              <span className="font-bold text-slate-900">List Your Salon on AAORA</span>
-            </div>
-            <p className="text-[11px] text-slate-500 mb-2">
-              Grow your client base with verified bookings and smart slot management.
-            </p>
-            <button className="w-full py-1.5 bg-blue-600 text-white rounded-lg text-[11px] font-bold hover:bg-blue-700 transition-colors">
-              Partner With Us
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              onClose();
+              if (onOpenAuth) onOpenAuth('login');
+            }}
+            className="w-full flex items-center gap-3 p-3 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 transition-colors text-left"
+          >
+            <UserCheck className="w-4 h-4 text-blue-600" />
+            <span>Switch Role / Quick Sign In</span>
+          </button>
 
           <div className="pt-4 pb-2 border-t border-slate-100">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3">
@@ -108,17 +167,12 @@ export default function SideMenuDrawer({
             <span>24/7 Helpline (+91 731 400 0000)</span>
           </div>
 
-          <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 text-slate-700 font-medium cursor-pointer">
-            <FileText className="w-4 h-4 text-slate-500" />
-            <span>Terms of Service & Privacy</span>
-          </div>
-
         </div>
 
         {/* Footer */}
         <div className="p-4 border-t border-slate-100 text-center text-[11px] text-slate-400 bg-slate-50">
           <p>© 2025 AAORA Salon Tech Ltd.</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Version 2.4.0 (Home Edition)</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Production Full-Stack v3.0</p>
         </div>
 
       </div>

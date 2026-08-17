@@ -180,7 +180,7 @@ export default function PopularSalons({
                     onClick={() => onQuickBook(salon)}
                     className="flex-1 py-2 px-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
                   >
-                    <span>Book Now</span>
+                    <span>Book Appointment</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
