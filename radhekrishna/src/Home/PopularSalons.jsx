@@ -1,11 +1,12 @@
 import React from 'react';
-import { Star, MapPin, Heart, ArrowRight, Sparkles, Clock, Phone } from 'lucide-react';
+import { Star, MapPin, Heart, ArrowRight, Sparkles, Clock, Phone, Navigation, Map as MapIcon } from 'lucide-react';
 
 export default function PopularSalons({
   salons,
   onToggleFavorite,
   onSelectSalon,
   onQuickBook,
+  onNavigate,
   filterCategory,
   filterGender,
   searchQuery,
@@ -28,6 +29,16 @@ export default function PopularSalons({
             Top rated salons with verified sanitary standards and expert stylists
           </p>
         </div>
+
+        {/* Map View Header CTA */}
+        <button
+          id="btn-popular-salons-map"
+          onClick={() => onNavigate && onNavigate('salon-map')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition-all border border-blue-200/80 shadow-2xs"
+        >
+          <MapIcon className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Map View</span>
+        </button>
       </div>
 
       {/* Active Filter Indicators */}
@@ -121,10 +132,22 @@ export default function PopularSalons({
 
                 {/* Distance & Starting Price (Bottom Overlays) */}
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs">
-                  <span className="inline-flex items-center gap-1 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 text-[11px] font-medium">
-                    <MapPin className="w-3 h-3 text-rose-400" />
-                    {salon.distance}
-                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onNavigate) {
+                        onNavigate('salon-map', {
+                          initialSalonId: salon.id,
+                          autoGetDirections: true,
+                        });
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 bg-black/50 hover:bg-blue-600/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 text-[11px] font-medium transition-all"
+                    title="View route on Google Maps"
+                  >
+                    <Navigation className="w-3 h-3 text-rose-400" />
+                    {salon.distance} • Map
+                  </button>
                   <span className="inline-flex items-center gap-1 bg-blue-600/90 backdrop-blur-md px-2.5 py-1 rounded-lg font-bold text-[11px]">
                     Starts ₹{salon.startingPrice}
                   </span>

@@ -9,13 +9,15 @@ import BookAppointmentPage from './booking/BookAppointmentPage';
 import ExploreStylesPage from './styles/ExploreStylesPage';
 import SalonOwnerDashboard from './owner/SalonOwnerDashboard';
 import AdminDashboard from './admin/AdminDashboard';
+import NearbySalonsMapPage from './maps/NearbySalonsMapPage';
 import AuthModal from './auth/AuthModal';
 import { INITIAL_SALONS, INITIAL_BOOKINGS_DATA } from './home/mockData';
 import { fetchSalons, fetchUserBookings, logoutUser, getStoredUser } from './lib/api';
-import { ShieldAlert, Store } from 'lucide-react';
+import { ShieldAlert, User, Store, ShieldCheck, ArrowLeft } from 'lucide-react';
 
 export default function App() {
-  // Navigation Router state
+  // Navigation Router state:
+  // 'home' | 'offers' | 'services' | 'gender-services' | 'salon-detail' | 'my-bookings' | 'book-appointment' | 'explore-styles' | 'owner-dashboard' | 'admin-dashboard'
   const [currentPage, setCurrentPage] = useState('home');
   const [routeParams, setRouteParams] = useState({});
 
@@ -29,7 +31,7 @@ export default function App() {
       name: 'Ajeet Lodhi',
       email: 'ajeetlodhii01@gmail.com',
       phone: '+91 98765 43210',
-      role: 'customer',
+      role: 'customer', // 'customer' | 'owner' | 'admin'
       avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
       token: 'jwt_token_sample_customer_123',
     };
@@ -190,7 +192,7 @@ export default function App() {
         />
       )}
 
-      {/* 4. GENDER SPECIFIC SERVICES PAGE */}
+      {/* 4. GENDER SPECIFIC SERVICES PAGE (FOR MEN / FOR WOMEN) */}
       {currentPage === 'gender-services' && (
         <GenderServicesPage
           initialGender={routeParams.gender || 'men'}
@@ -261,7 +263,18 @@ export default function App() {
         />
       )}
 
-      {/* 9. SALON OWNER / PARTNER DASHBOARD */}
+      {/* 9. GOOGLE MAPS NEARBY SALONS & LIVE ROUTES */}
+      {currentPage === 'salon-map' && (
+        <NearbySalonsMapPage
+          onNavigate={handleNavigate}
+          initialSalonId={routeParams.initialSalonId || null}
+          initialLat={routeParams.initialLat || null}
+          initialLng={routeParams.initialLng || null}
+          autoGetDirections={routeParams.autoGetDirections || false}
+        />
+      )}
+
+      {/* 10. SALON OWNER / PARTNER DASHBOARD (Strict RBAC Guard) */}
       {currentPage === 'owner-dashboard' && (
         currentUser?.role === 'owner' || currentUser?.role === 'admin' ? (
           <SalonOwnerDashboard
@@ -278,7 +291,7 @@ export default function App() {
             </div>
             <h2 className="text-xl font-bold mb-2">Salon Partner Portal Access Required</h2>
             <p className="text-slate-400 text-xs max-w-md mb-6">
-              You are currently logged in as a <strong>Customer</strong> ({currentUser?.email}). Please login with a Salon Partner account.
+              You are currently logged in as a <strong>Customer</strong> ({currentUser?.email}). Please login with a Salon Partner account to manage salon schedules, appointments, and staff.
             </p>
             <div className="flex items-center gap-3">
               <button
@@ -301,7 +314,7 @@ export default function App() {
         )
       )}
 
-      {/* 10. PLATFORM ADMIN DASHBOARD */}
+      {/* 10. PLATFORM ADMIN DASHBOARD (Strict RBAC Guard) */}
       {currentPage === 'admin-dashboard' && (
         currentUser?.role === 'admin' ? (
           <AdminDashboard
@@ -315,7 +328,7 @@ export default function App() {
             </div>
             <h2 className="text-xl font-bold mb-2">403 Forbidden • Admin Authorization Required</h2>
             <p className="text-slate-400 text-xs max-w-md mb-6">
-              Platform administration controls are restricted to verified Super Admins.
+              Platform administration controls are restricted strictly to verified Super Admins. Sign in with administrative credentials to manage commissions, verified salons, and audits.
             </p>
             <div className="flex items-center gap-3">
               <button

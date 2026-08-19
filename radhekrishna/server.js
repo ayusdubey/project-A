@@ -72,6 +72,8 @@ let SALONS = [
     distance: '0.8 km away',
     address: 'Plot 14, Ring Road, Vijay Nagar',
     city: 'Indore',
+    lat: 22.7533,
+    lng: 75.8937,
     image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
     gallery: [
       'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
@@ -181,6 +183,8 @@ let SALONS = [
     distance: '1.2 km away',
     address: '5th Floor, Treasure Island Mall, Palasia',
     city: 'Indore',
+    lat: 22.7244,
+    lng: 75.8839,
     image: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80',
     gallery: [
       'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80',
@@ -242,6 +246,8 @@ let SALONS = [
     distance: '1.5 km away',
     address: 'Near C21 Mall, Scheme 54',
     city: 'Indore',
+    lat: 22.7480,
+    lng: 75.8975,
     image: 'https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?auto=format&fit=crop&w=800&q=80',
     gallery: [
       'https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?auto=format&fit=crop&w=800&q=80',

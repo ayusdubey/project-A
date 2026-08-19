@@ -136,6 +136,7 @@ export default function HomePage({
         onOpenSideMenu={() => setIsSideMenuOpen(true)}
         onOpenProfile={() => setIsProfileDrawerOpen(true)}
         activeFilterGender={selectedGender}
+        onNavigate={onNavigate}
         onFilterGender={(gender) => {
           if (gender === 'men' || gender === 'women') {
             if (onNavigate) onNavigate('gender-services', { gender });
@@ -189,12 +190,47 @@ export default function HomePage({
           }}
         />
 
+        {/* 4.5 Interactive Google Maps Salon Locator Banner */}
+        <section className="max-w-4xl mx-auto px-4 sm:px-6 my-6">
+          <div
+            onClick={() => onNavigate && onNavigate('salon-map')}
+            className="group relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-6 sm:p-7 text-white cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-800/40"
+          >
+            {/* Background Map Grid Graphic */}
+            <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-20 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+            
+            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="max-w-md">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold mb-2.5 border border-blue-400/20">
+                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                  Google Maps Platform
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Find Salons Near You on Live Map
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                  View nearby top-rated salons, real-time distance from your GPS, and calculate turn-by-turn travel routes.
+                </p>
+              </div>
+
+              <button
+                id="btn-home-explore-map"
+                className="px-5 py-3 rounded-2xl bg-blue-600 group-hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all flex-shrink-0"
+              >
+                <span>Launch Map & Directions</span>
+                <span className="group-hover:translate-x-1 transition-transform">→</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* 5. Popular Salons Near You Grid & Heart Favorites -> Navigates to Salon Page */}
         <PopularSalons
           salons={filteredSalons}
           onToggleFavorite={onToggleFavorite}
           onSelectSalon={handleSelectSalonDetail}
           onQuickBook={handleQuickBook}
+          onNavigate={onNavigate}
           filterCategory={selectedCategory}
           filterGender={selectedGender}
           searchQuery={searchQuery}

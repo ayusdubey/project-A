@@ -24,7 +24,9 @@ import {
   CreditCard,
   User,
   Tag,
-  X
+  X,
+  Navigation,
+  Map as MapIcon
 } from 'lucide-react';
 import { INITIAL_SALONS } from '../home/mockData';
 
@@ -431,20 +433,65 @@ export default function SalonDetailPage({
             </div>
 
             <div className="pt-4 border-t border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 mb-2">Location & Contact</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-bold text-slate-900">Location & Contact</h3>
+                <button
+                  onClick={() => {
+                    if (onNavigate) {
+                      onNavigate('salon-map', {
+                        initialSalonId: salon.id,
+                        autoGetDirections: true,
+                      });
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition-all border border-blue-200"
+                >
+                  <Navigation className="w-3.5 h-3.5" />
+                  <span>Get Directions</span>
+                </button>
+              </div>
+
               <div className="text-xs text-slate-600 space-y-1.5">
                 <p className="flex items-center gap-2">
                   <MapPin className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
-                  <span>{salon.location}, AB Road, Near City Mall, Indore (M.P.)</span>
+                  <span>{salon.address || salon.location || 'Plot 14, Ring Road, Vijay Nagar, Indore'}</span>
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                  <span>+91 98260 12345 / +91 731 4056789</span>
+                  <span>{salon.phone || '+91 98260 12345 / +91 731 4056789'}</span>
                 </p>
                 <p className="flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                  <span>Mon – Sun: 09:30 AM – 09:30 PM (All 7 Days Open)</span>
+                  <span>{salon.openingHours || 'Mon – Sun: 09:30 AM – 09:30 PM (All 7 Days Open)'}</span>
                 </p>
+              </div>
+
+              {/* Interactive Google Map Preview Banner */}
+              <div
+                onClick={() => {
+                  if (onNavigate) {
+                    onNavigate('salon-map', {
+                      initialSalonId: salon.id,
+                      autoGetDirections: true,
+                    });
+                  }
+                }}
+                className="mt-3 p-3 bg-gradient-to-r from-slate-900 to-blue-950 text-white rounded-2xl flex items-center justify-between cursor-pointer hover:shadow-md transition-all group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-600/30 text-blue-400 flex items-center justify-center flex-shrink-0">
+                    <MapIcon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h5 className="text-xs font-bold text-white group-hover:text-blue-300 transition-colors">
+                      View on Interactive Google Map
+                    </h5>
+                    <p className="text-[10px] text-slate-300">
+                      Calculates turn-by-turn route, traffic, and distance from your live GPS
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-blue-400 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           </div>

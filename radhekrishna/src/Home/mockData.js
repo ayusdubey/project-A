@@ -1,9 +1,9 @@
 export const CITIES = [
-  { id: 'indore', name: 'Indore', state: 'MP', areas: ['Vijay Nagar', 'Palasia', 'Scheme 54', 'South Tukoganj', 'AB Road', 'Bhawarkua'] },
-  { id: 'bhopal', name: 'Bhopal', state: 'MP', areas: ['MP Nagar', 'Arera Colony', 'Gulmohar', 'Kolar Road'] },
-  { id: 'mumbai', name: 'Mumbai', state: 'MH', areas: ['Bandra', 'Andheri West', 'Juhu', 'Colaba', 'Powai'] },
-  { id: 'delhi', name: 'Delhi NCR', state: 'DL', areas: ['Connaught Place', 'South Extension', 'Saket', 'Gurugram', 'Noida'] },
-  { id: 'bengaluru', name: 'Bengaluru', state: 'KA', areas: ['Koramangala', 'Indiranagar', 'HSR Layout', 'Whitefield'] },
+  { id: 'indore', name: 'Indore', state: 'MP', lat: 22.7533, lng: 75.8937, areas: ['Vijay Nagar', 'Palasia', 'Scheme 54', 'South Tukoganj', 'AB Road', 'Bhawarkua'] },
+  { id: 'bhopal', name: 'Bhopal', state: 'MP', lat: 23.2599, lng: 77.4126, areas: ['MP Nagar', 'Arera Colony', 'Gulmohar', 'Kolar Road'] },
+  { id: 'mumbai', name: 'Mumbai', state: 'MH', lat: 19.0760, lng: 72.8777, areas: ['Bandra', 'Andheri West', 'Juhu', 'Colaba', 'Powai'] },
+  { id: 'delhi', name: 'Delhi NCR', state: 'DL', lat: 28.6139, lng: 77.2090, areas: ['Connaught Place', 'South Extension', 'Saket', 'Gurugram', 'Noida'] },
+  { id: 'bengaluru', name: 'Bengaluru', state: 'KA', lat: 12.9716, lng: 77.5946, areas: ['Koramangala', 'Indiranagar', 'HSR Layout', 'Whitefield'] },
 ];
 
 export const SERVICE_CATEGORIES = [
@@ -112,6 +112,8 @@ export const INITIAL_SALONS = [
     distance: '0.8 km away',
     address: 'Plot 14, Ring Road, Vijay Nagar',
     city: 'Indore',
+    lat: 22.7533,
+    lng: 75.8937,
     image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
     gallery: [
       'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80',
@@ -217,6 +219,8 @@ export const INITIAL_SALONS = [
     distance: '1.2 km away',
     address: '5th Floor, Treasure Island Mall, Palasia',
     city: 'Indore',
+    lat: 22.7244,
+    lng: 75.8839,
     image: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80',
     gallery: [
       'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=800&q=80',
@@ -246,6 +250,8 @@ export const INITIAL_SALONS = [
     distance: '1.5 km away',
     address: 'Near C21 Mall, Scheme 54',
     city: 'Indore',
+    lat: 22.7480,
+    lng: 75.8975,
     image: 'https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?auto=format&fit=crop&w=800&q=80',
     gallery: [
       'https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?auto=format&fit=crop&w=800&q=80',
@@ -275,6 +281,8 @@ export const INITIAL_SALONS = [
     distance: '2.1 km away',
     address: 'Opposite High Court, South Tukoganj',
     city: 'Indore',
+    lat: 22.7165,
+    lng: 75.8770,
     image: 'https://images.unsplash.com/photo-1629731602701-44aa0a202758?auto=format&fit=crop&w=800&q=80',
     gallery: [
       'https://images.unsplash.com/photo-1629731602701-44aa0a202758?auto=format&fit=crop&w=800&q=80',
@@ -303,6 +311,8 @@ export const INITIAL_SALONS = [
     distance: '2.8 km away',
     address: 'Phoenix Citadel Mall, MR 10 Road',
     city: 'Indore',
+    lat: 22.7712,
+    lng: 75.9180,
     image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
     gallery: [
       'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',

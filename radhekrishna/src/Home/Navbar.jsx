@@ -8,7 +8,8 @@ import {
   X,
   User,
   SlidersHorizontal,
-  Check
+  Check,
+  Map as MapIcon
 } from 'lucide-react';
 import { CITIES } from './mockData';
 
@@ -25,6 +26,7 @@ export default function Navbar({
   onOpenProfile,
   activeFilterGender,
   onFilterGender,
+  onNavigate,
 }) {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -150,6 +152,17 @@ export default function Navbar({
           {/* Right: Search, Filter, Notification, Profile */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             
+            {/* Google Map Locator Button */}
+            <button
+              id="btn-nav-map-locator"
+              onClick={() => onNavigate && onNavigate('salon-map')}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 active:scale-95 text-xs font-bold transition-all border border-blue-200/80 shadow-2xs"
+              title="Open Google Maps Salon Locator"
+            >
+              <MapIcon className="w-4 h-4 text-blue-600" />
+              <span className="hidden sm:inline">Map</span>
+            </button>
+
             {/* Search Trigger (Mobile/Desktop) */}
             <button
               id="btn-search-toggle"
