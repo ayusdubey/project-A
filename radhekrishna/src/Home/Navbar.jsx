@@ -27,6 +27,7 @@ export default function Navbar({
   activeFilterGender,
   onFilterGender,
   onNavigate,
+  currentUser,
 }) {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -215,9 +216,24 @@ export default function Navbar({
               className="p-1 rounded-full ring-2 ring-slate-100 hover:ring-blue-400 active:scale-95 transition-all ml-0.5"
               aria-label="View user profile"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                <span>AJ</span>
-              </div>
+              {currentUser ? (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                  <span>
+                    {currentUser.name
+                      ? currentUser.name
+                          .split(' ')
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join('')
+                          .toUpperCase()
+                      : 'U'}
+                  </span>
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shadow-xs">
+                  <User className="w-4 h-4" />
+                </div>
+              )}
             </button>
           </div>
         </div>

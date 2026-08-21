@@ -9,55 +9,33 @@ import BookAppointmentPage from './booking/BookAppointmentPage';
 import ExploreStylesPage from './styles/ExploreStylesPage';
 import SalonOwnerDashboard from './owner/SalonOwnerDashboard';
 import AdminDashboard from './admin/AdminDashboard';
+import StylistPortal from './staff/StylistPortal';
 import NearbySalonsMapPage from './maps/NearbySalonsMapPage';
 import AuthModal from './auth/AuthModal';
 import { INITIAL_SALONS, INITIAL_BOOKINGS_DATA } from './home/mockData';
-import { fetchSalons, fetchUserBookings, logoutUser, getStoredUser } from './lib/api';
-import { ShieldAlert, User, Store, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { fetchSalons, fetchUserBookings } from './lib/api';
+import { AuthProvider, useAuth, AUTH_STATUS } from './lib/AuthContext';
+import { ShieldAlert, Store, Scissors, Lock, ArrowLeft, LogIn } from 'lucide-react';
 
-export default function App() {
+function AppContent() {
+  const { currentUser, isAuthenticated, isLoading, logout, role } = useAuth();
+
   // Navigation Router state:
-  // 'home' | 'offers' | 'services' | 'gender-services' | 'salon-detail' | 'my-bookings' | 'book-appointment' | 'explore-styles' | 'owner-dashboard' | 'admin-dashboard'
+  // 'home' | 'offers' | 'services' | 'gender-services' | 'salon-detail' | 'my-bookings' | 'book-appointment' | 'explore-styles' | 'owner-dashboard' | 'admin-dashboard' | 'staff-portal' | 'salon-map'
   const [currentPage, setCurrentPage] = useState('home');
   const [routeParams, setRouteParams] = useState({});
 
-  // Auth & User state
+  // Auth Modal state
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login');
-  const [currentUser, setCurrentUser] = useState(() => {
-    const stored = getStoredUser();
-    if (stored) return stored;
-    return {
-      name: 'Ajeet Lodhi',
-      email: 'ajeetlodhii01@gmail.com',
-      phone: '+91 98765 43210',
-      role: 'customer', // 'customer' | 'owner' | 'admin'
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-      token: 'jwt_token_sample_customer_123',
-    };
-  });
+  const [authRoleHint, setAuthRoleHint] = useState(null);
 
-  // Global state synchronized across pages
+  // Global app data
   const [salons, setSalons] = useState(INITIAL_SALONS);
   const [userBookings, setUserBookings] = useState(INITIAL_BOOKINGS_DATA);
 
-  // Sync initial data from backend if available
+  // Sync initial salon and booking data
   useEffect(() => {
-    if (!localStorage.getItem('aaora_token')) {
-      localStorage.setItem('aaora_token', 'jwt_demo_token_customer_123');
-      localStorage.setItem(
-        'aaora_user',
-        JSON.stringify({
-          id: 'usr-customer-1',
-          name: 'Ajeet Lodhi',
-          email: 'ajeetlodhii01@gmail.com',
-          phone: '+91 98765 43210',
-          role: 'customer',
-          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-        })
-      );
-    }
-
     fetchSalons()
       .then((res) => {
         if (res && res.salons && res.salons.length > 0) {
@@ -75,39 +53,54 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  // Navigate handler with role guards
+  // When a user logs out, redirect sensitive portals safely to home
+  useEffect(() => {
+    if (!isAuthenticated) {
+      if (
+        currentPage === 'owner-dashboard' ||
+        currentPage === 'admin-dashboard' ||
+        currentPage === 'staff-portal'
+      ) {
+        setCurrentPage('home');
+      }
+    }
+  }, [isAuthenticated, currentPage]);
+
+  // Navigate handler with route aliases
   const handleNavigate = (page, params = {}) => {
-    setCurrentPage(page);
+    const targetPage = page === 'bookings' ? 'my-bookings' : page;
+    setCurrentPage(targetPage);
     setRouteParams(params);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleLogout = () => {
-    logoutUser();
-    setCurrentUser(null);
+  const handleOpenAuth = (mode = 'login', roleHint = null) => {
+    setAuthMode(mode || 'login');
+    setAuthRoleHint(roleHint || null);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleLogout = async () => {
+    await logout();
     setCurrentPage('home');
   };
 
-  // Toggle favorite status
   const handleToggleFavorite = (salonId) => {
     setSalons((prev) =>
       prev.map((s) => (s.id === salonId ? { ...s, isFavorite: !s.isFavorite } : s))
     );
   };
 
-  // Add new confirmed booking
   const handleBookingSuccess = (newBooking) => {
     setUserBookings((prev) => [newBooking, ...prev]);
   };
 
-  // Cancel booking
   const handleCancelBooking = (bookingId) => {
     setUserBookings((prev) =>
       prev.map((b) => (b.id === bookingId ? { ...b, status: 'Cancelled' } : b))
     );
   };
 
-  // Reschedule booking
   const handleRescheduleBooking = (bookingId, newSchedule) => {
     setUserBookings((prev) =>
       prev.map((b) =>
@@ -123,14 +116,12 @@ export default function App() {
     );
   };
 
-  // Update booking status (for Owner / Partner dashboard)
   const handleUpdateBookingStatus = (bookingId, newStatus) => {
     setUserBookings((prev) =>
       prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
     );
   };
 
-  // Add user rating & review
   const handleAddReview = (bookingId, reviewData) => {
     setUserBookings((prev) =>
       prev.map((b) =>
@@ -148,7 +139,6 @@ export default function App() {
 
   return (
     <div className="w-full min-h-screen bg-slate-50 text-slate-900 font-sans">
-      
       {/* 1. HOME PAGE */}
       {currentPage === 'home' && (
         <HomePage
@@ -158,10 +148,8 @@ export default function App() {
           userBookings={userBookings}
           onCancelBooking={handleCancelBooking}
           currentUser={currentUser}
-          onOpenAuth={(mode) => {
-            setAuthMode(mode || 'login');
-            setIsAuthModalOpen(true);
-          }}
+          onLogout={handleLogout}
+          onOpenAuth={(mode, roleHint) => handleOpenAuth(mode, roleHint)}
         />
       )}
 
@@ -192,7 +180,7 @@ export default function App() {
         />
       )}
 
-      {/* 4. GENDER SPECIFIC SERVICES PAGE (FOR MEN / FOR WOMEN) */}
+      {/* 4. GENDER SPECIFIC SERVICES PAGE */}
       {currentPage === 'gender-services' && (
         <GenderServicesPage
           initialGender={routeParams.gender || 'men'}
@@ -225,6 +213,9 @@ export default function App() {
       {currentPage === 'my-bookings' && (
         <MyBookingsPage
           bookings={userBookings}
+          currentUser={currentUser}
+          isAuthenticated={isAuthenticated}
+          onOpenAuth={handleOpenAuth}
           onNavigate={handleNavigate}
           onCancelBooking={handleCancelBooking}
           onRescheduleBooking={handleRescheduleBooking}
@@ -274,11 +265,52 @@ export default function App() {
         />
       )}
 
-      {/* 10. SALON OWNER / PARTNER DASHBOARD (Strict RBAC Guard) */}
+      {/* 10. STYLIST / STAFF WORKSTATION PORTAL (Staff / Owner / Admin Guard) */}
+      {currentPage === 'staff-portal' && (
+        isAuthenticated && (role === 'staff' || role === 'owner' || role === 'admin') ? (
+          <StylistPortal
+            currentUser={currentUser}
+            salon={salons.find((s) => s.id === (currentUser?.salonId || 'looks-salon')) || salons[0]}
+            bookings={userBookings}
+            onUpdateBookingStatus={handleUpdateBookingStatus}
+            onNavigate={handleNavigate}
+            onLogout={handleLogout}
+          />
+        ) : (
+          <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
+              <Scissors className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Staff & Stylist Authorization Required</h2>
+            <p className="text-slate-400 text-xs max-w-md mb-6">
+              {currentUser
+                ? `You are currently signed in as '${currentUser.email}' with role '${currentUser.role}'. This workstation is restricted to verified salon stylists and managers.`
+                : 'Please sign in with your staff workstation credentials to manage service queues and client appointments.'}
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleNavigate('home')}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white"
+              >
+                Back to Home
+              </button>
+              <button
+                onClick={() => handleOpenAuth('login', 'staff')}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white shadow-md flex items-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In as Staff</span>
+              </button>
+            </div>
+          </div>
+        )
+      )}
+
+      {/* 11. SALON OWNER / PARTNER DASHBOARD (Strict RBAC Guard) */}
       {currentPage === 'owner-dashboard' && (
-        currentUser?.role === 'owner' || currentUser?.role === 'admin' ? (
+        isAuthenticated && (role === 'owner' || role === 'admin') ? (
           <SalonOwnerDashboard
-            salonId={routeParams.salonId || 'looks-salon'}
+            salonId={routeParams.salonId || currentUser?.salonId || 'looks-salon'}
             bookings={userBookings}
             onUpdateBookingStatus={handleUpdateBookingStatus}
             onNavigate={handleNavigate}
@@ -291,7 +323,9 @@ export default function App() {
             </div>
             <h2 className="text-xl font-bold mb-2">Salon Partner Portal Access Required</h2>
             <p className="text-slate-400 text-xs max-w-md mb-6">
-              You are currently logged in as a <strong>Customer</strong> ({currentUser?.email}). Please login with a Salon Partner account to manage salon schedules, appointments, and staff.
+              {currentUser
+                ? `You are signed in as '${currentUser.email}' with role '${currentUser.role}'. Only verified salon owners can access this portal.`
+                : 'Please sign in with your verified Salon Partner account to manage your salon, schedules, and staff.'}
             </p>
             <div className="flex items-center gap-3">
               <button
@@ -301,22 +335,20 @@ export default function App() {
                 Back to Home
               </button>
               <button
-                onClick={() => {
-                  setAuthMode('login');
-                  setIsAuthModalOpen(true);
-                }}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white shadow-md"
+                onClick={() => handleOpenAuth('login', 'owner')}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-bold text-white shadow-md flex items-center gap-2"
               >
-                Switch / Sign In as Partner
+                <LogIn className="w-4 h-4" />
+                <span>Sign In as Partner</span>
               </button>
             </div>
           </div>
         )
       )}
 
-      {/* 10. PLATFORM ADMIN DASHBOARD (Strict RBAC Guard) */}
+      {/* 12. PLATFORM ADMIN DASHBOARD (Strict RBAC Guard) */}
       {currentPage === 'admin-dashboard' && (
-        currentUser?.role === 'admin' ? (
+        isAuthenticated && role === 'admin' ? (
           <AdminDashboard
             onNavigate={handleNavigate}
             onLogout={handleLogout}
@@ -328,7 +360,9 @@ export default function App() {
             </div>
             <h2 className="text-xl font-bold mb-2">403 Forbidden • Admin Authorization Required</h2>
             <p className="text-slate-400 text-xs max-w-md mb-6">
-              Platform administration controls are restricted strictly to verified Super Admins. Sign in with administrative credentials to manage commissions, verified salons, and audits.
+              {currentUser
+                ? `Access Denied: Account '${currentUser.email}' does not possess administrative privileges.`
+                : 'Platform administrative controls are strictly restricted to verified Super Admins.'}
             </p>
             <div className="flex items-center gap-3">
               <button
@@ -338,13 +372,11 @@ export default function App() {
                 Return to Storefront
               </button>
               <button
-                onClick={() => {
-                  setAuthMode('login');
-                  setIsAuthModalOpen(true);
-                }}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white shadow-md"
+                onClick={() => handleOpenAuth('login', 'admin')}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-xs font-bold text-white shadow-md flex items-center gap-2"
               >
-                Login as Super Admin
+                <LogIn className="w-4 h-4" />
+                <span>Sign In as Admin</span>
               </button>
             </div>
           </div>
@@ -355,11 +387,19 @@ export default function App() {
       <AuthModal
         isOpen={isAuthModalOpen}
         initialMode={authMode}
-        onClose={() => setIsAuthModalOpen(false)}
+        roleHint={authRoleHint}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setAuthRoleHint(null);
+        }}
         onAuthSuccess={(user) => {
-          setCurrentUser(user);
+          setIsAuthModalOpen(false);
+          setAuthRoleHint(null);
+          // Automatic destination routing based on authoritative backend role
           if (user.role === 'owner') {
             handleNavigate('owner-dashboard');
+          } else if (user.role === 'staff') {
+            handleNavigate('staff-portal');
           } else if (user.role === 'admin') {
             handleNavigate('admin-dashboard');
           } else {
@@ -367,7 +407,14 @@ export default function App() {
           }
         }}
       />
-
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

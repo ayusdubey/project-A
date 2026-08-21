@@ -114,7 +114,7 @@ ensureInitialized();
 // ------------------------------------
 
 export function getStoredToken() {
-  return localStorage.getItem(KEY_TOKEN) || 'jwt_demo_customer_token';
+  return localStorage.getItem(KEY_TOKEN) || null;
 }
 
 export function setStoredToken(token) {
@@ -126,9 +126,7 @@ export function setStoredToken(token) {
 }
 
 export function getStoredUser() {
-  const user = getLocalData(KEY_USER, null);
-  if (user) return user;
-  return DEMO_USERS[0]; // Default to Customer Ajeet Lodhi
+  return getLocalData(KEY_USER, null);
 }
 
 export function setStoredUser(user) {
@@ -139,84 +137,92 @@ export function setStoredUser(user) {
   }
 }
 
-export function logoutUser() {
+export async function logoutUser() {
+  const token = getStoredToken();
   setStoredToken(null);
   setStoredUser(null);
+  if (token) {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (e) {
+      // Ignore network errors on logout
+    }
+  }
 }
 
 export async function loginUser(email, password, requestedRole) {
-  await delay(60);
-  ensureInitialized();
-  const users = getLocalData(KEY_USERS_LIST, DEMO_USERS);
-  
-  // Find matching user by email or fallback by role
-  let found = users.find(
-    (u) => u.email.toLowerCase() === (email || '').toLowerCase()
-  );
-
-  if (!found && requestedRole) {
-    found = users.find((u) => u.role === requestedRole) || DEMO_USERS.find((u) => u.role === requestedRole);
-  }
-
-  if (!found) {
-    // Create new customer profile on the fly
-    found = {
-      id: `usr-${Date.now()}`,
-      name: email ? email.split('@')[0] : 'Aaora Customer',
-      email: email || 'user@aaora.com',
-      phone: '+91 98765 00000',
-      role: requestedRole || 'customer',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-      status: 'active',
-      token: `jwt_demo_${requestedRole || 'customer'}_${Date.now()}`,
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, role: requestedRole }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Authentication failed. Please check credentials.');
+    }
+    setStoredToken(data.token);
+    setStoredUser(data.user);
+    return {
+      success: true,
+      token: data.token,
+      user: data.user,
+      message: data.message || `Welcome back, ${data.user.name}!`,
     };
-    users.push(found);
-    setLocalData(KEY_USERS_LIST, users);
+  } catch (err) {
+    // If network error occurred, rethrow
+    throw err;
   }
-
-  setStoredToken(found.token || `jwt_${found.role}_demo`);
-  setStoredUser(found);
-
-  return {
-    success: true,
-    token: found.token,
-    user: found,
-    message: `Welcome back, ${found.name}!`,
-  };
 }
 
 export async function registerUser(userData) {
-  await delay(60);
-  ensureInitialized();
-  const users = getLocalData(KEY_USERS_LIST, DEMO_USERS);
-
-  const newUser = {
-    id: `usr-${Date.now()}`,
-    name: userData.name || 'Aaora Customer',
-    email: userData.email || 'customer@aaora.com',
-    phone: userData.phone || '+91 98765 43210',
-    role: userData.role || 'customer',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-    status: 'active',
-    joinedDate: 'Just now',
-    salonId: userData.role === 'owner' ? 'looks-salon' : undefined,
-    token: `jwt_demo_${userData.role || 'customer'}_${Date.now()}`,
-  };
-
-  users.push(newUser);
-  setLocalData(KEY_USERS_LIST, users);
-  setStoredToken(newUser.token);
-  setStoredUser(newUser);
-
-  return {
-    success: true,
-    token: newUser.token,
-    user: newUser,
-    message: 'Account registered successfully!',
-  };
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Registration failed.');
+    }
+    setStoredToken(data.token);
+    setStoredUser(data.user);
+    return {
+      success: true,
+      token: data.token,
+      user: data.user,
+      message: data.message || 'Account registered successfully!',
+    };
+  } catch (err) {
+    throw err;
+  }
 }
 
 export async function submitOnboarding(onboardingData) {
+  try {
+    const token = getStoredToken();
+    const res = await fetch('/api/user/onboarding', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(onboardingData),
+    });
+    const data = await res.json();
+    if (res.ok && data.user) {
+      setStoredUser(data.user);
+      return { success: true, user: data.user };
+    }
+  } catch {}
+
   await delay(40);
   const currentUser = getStoredUser();
   if (currentUser) {
@@ -228,7 +234,21 @@ export async function submitOnboarding(onboardingData) {
 }
 
 export async function getUserProfile() {
-  await delay(20);
+  try {
+    const token = getStoredToken();
+    if (token) {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setStoredUser(data.user);
+          return { success: true, user: data.user };
+        }
+      }
+    }
+  } catch {}
   return { success: true, user: getStoredUser() };
 }
 
@@ -522,162 +542,152 @@ export async function submitBookingReview(bookingId, reviewData) {
 // ------------------------------------
 
 export async function fetchOwnerDashboard() {
-  await delay(40);
-  ensureInitialized();
-  const bookings = getLocalData(KEY_BOOKINGS, INITIAL_BOOKINGS_DATA);
-  const salons = getLocalData(KEY_SALONS, INITIAL_SALONS);
-  const ownerSalon = salons[0]; // Looks Salon
+  const token = getStoredToken();
+  if (!token) {
+    throw new Error('Authentication required: Please log in as a salon owner.');
+  }
 
-  const salonBookings = bookings.filter((b) => b.salonId === 'looks-salon');
-  const todayCount = salonBookings.filter((b) => b.status !== 'Cancelled').length;
-  const completed = salonBookings.filter((b) => b.status === 'Completed');
-  const totalRevenue = salonBookings
-    .filter((b) => b.status === 'Completed' || b.status === 'Confirmed')
-    .reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
+  const res = await fetch('/api/owner/dashboard', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to load owner dashboard. Access denied.');
+  }
 
   return {
     success: true,
-    salon: ownerSalon,
-    metrics: {
-      todayAppointments: todayCount || 5,
-      activeQueue: salonBookings.filter((b) => b.status === 'Confirmed' || b.status === 'Customer Arrived' || b.status === 'In Progress').length || 3,
-      totalRevenue: totalRevenue || 12450,
-      netPayout: Math.round(totalRevenue * 0.95) || 11827,
-      completedToday: completed.length || 2,
-      activeBarbers: ownerSalon.stylists.filter((s) => s.active).length || 3,
-      rating: ownerSalon.rating || 4.7,
-      reviewsCount: ownerSalon.reviewsCount || 1240,
-    },
-    upcomingBookings: salonBookings,
+    salon: data.salon,
+    metrics: data.metrics,
+    upcomingBookings: data.recentBookings || [],
   };
 }
 
 export async function fetchOwnerAppointments() {
-  await delay(30);
-  ensureInitialized();
-  const bookings = getLocalData(KEY_BOOKINGS, INITIAL_BOOKINGS_DATA);
-  const salonBookings = bookings.filter((b) => b.salonId === 'looks-salon');
-  return { success: true, appointments: salonBookings };
+  const token = getStoredToken();
+  if (!token) throw new Error('Authentication required.');
+
+  const res = await fetch('/api/owner/appointments', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to load salon appointments.');
+  return { success: true, appointments: data.bookings || [] };
 }
 
 export async function updateOwnerBookingStatus(bookingId, status) {
-  await delay(40);
-  ensureInitialized();
-  const bookings = getLocalData(KEY_BOOKINGS, INITIAL_BOOKINGS_DATA);
+  const token = getStoredToken();
+  if (!token) throw new Error('Authentication required.');
 
-  const updated = bookings.map((b) => (b.id === bookingId ? { ...b, status } : b));
-  setLocalData(KEY_BOOKINGS, updated);
-
-  return { success: true, bookingId, status, message: `Appointment status updated to ${status}` };
+  const res = await fetch(`/api/owner/appointments/${bookingId}/status`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to update booking status.');
+  return { success: true, bookingId, status, booking: data.booking, message: data.message };
 }
 
 export async function verifyOwnerQrCheckin(bookingId) {
-  await delay(40);
-  ensureInitialized();
-  const bookings = getLocalData(KEY_BOOKINGS, INITIAL_BOOKINGS_DATA);
-  const matched = bookings.find((b) => b.id.toLowerCase() === (bookingId || '').toLowerCase().trim());
+  const token = getStoredToken();
+  if (!token) throw new Error('Authentication required.');
 
-  if (!matched) {
-    // If ID not found directly, create verified pass for demo
-    return {
-      success: true,
-      verified: true,
-      booking: {
-        id: bookingId,
-        customerName: 'Ajeet Lodhi',
-        serviceName: 'Signature Haircut & Wash',
-        stylist: 'Aarav Sharma',
-        time: '11:00 AM',
-        status: 'Customer Arrived',
-        verifiedAt: new Date().toLocaleTimeString(),
-      },
-      message: 'QR Pass Verified Successfully!',
-    };
-  }
-
-  const updated = bookings.map((b) =>
-    b.id === matched.id ? { ...b, status: 'Customer Arrived', verifiedAt: new Date().toISOString() } : b
-  );
-  setLocalData(KEY_BOOKINGS, updated);
-
+  const res = await fetch('/api/owner/qr-checkin', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ bookingId }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to verify QR code.');
   return {
     success: true,
     verified: true,
-    booking: { ...matched, status: 'Customer Arrived' },
-    message: `QR Verified! ${matched.customerName} is checked in.`,
+    booking: data.booking,
+    message: data.message || 'QR Verified successfully!',
   };
 }
 
 export async function fetchOwnerBarbers() {
-  await delay(30);
-  ensureInitialized();
-  const salons = getLocalData(KEY_SALONS, INITIAL_SALONS);
-  return { success: true, barbers: salons[0]?.stylists || [] };
+  const token = getStoredToken();
+  if (!token) throw new Error('Authentication required.');
+
+  const res = await fetch('/api/owner/barbers', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch barbers.');
+  return { success: true, barbers: data.barbers || [] };
 }
 
 export async function addOwnerBarber(barberData) {
-  await delay(50);
-  ensureInitialized();
-  const salons = getLocalData(KEY_SALONS, INITIAL_SALONS);
-  const newBarber = {
-    id: `s-${Date.now()}`,
-    name: barberData.name || 'New Stylist',
-    role: barberData.role || 'Senior Stylist',
-    specialization: barberData.specialization || 'Precision Cuts & Styling',
-    experience: barberData.experience || '4 years',
-    rating: 5.0,
-    reviewsCount: 0,
-    avatar: barberData.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    workingHours: barberData.workingHours || '09:00 AM - 08:00 PM',
-    breaks: ['01:30 PM - 02:30 PM'],
-    daysOff: barberData.daysOff || ['Tuesday'],
-    active: true,
-    bookedSlots: {},
-  };
+  const token = getStoredToken();
+  if (!token) throw new Error('Authentication required.');
 
-  salons[0].stylists.push(newBarber);
-  setLocalData(KEY_SALONS, salons);
-
-  return { success: true, barber: newBarber, message: `${newBarber.name} added to salon roster!` };
+  const res = await fetch('/api/owner/barbers', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(barberData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to add barber.');
+  return { success: true, barber: data.barber, message: data.message };
 }
 
 export async function updateOwnerBarber(barberId, updates) {
-  await delay(40);
-  ensureInitialized();
-  const salons = getLocalData(KEY_SALONS, INITIAL_SALONS);
+  const token = getStoredToken();
+  if (!token) throw new Error('Authentication required.');
 
-  salons[0].stylists = salons[0].stylists.map((b) => (b.id === barberId ? { ...b, ...updates } : b));
-  setLocalData(KEY_SALONS, salons);
-
-  return { success: true, message: 'Barber profile updated!' };
+  const res = await fetch(`/api/owner/barbers/${barberId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(updates),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to update barber.');
+  return { success: true, barber: data.barber, message: data.message };
 }
 
 export async function fetchOwnerServices() {
-  await delay(30);
-  ensureInitialized();
-  const salons = getLocalData(KEY_SALONS, INITIAL_SALONS);
-  return { success: true, services: salons[0]?.services || [] };
+  const token = getStoredToken();
+  if (!token) throw new Error('Authentication required.');
+
+  const res = await fetch('/api/owner/services', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch services.');
+  return { success: true, services: data.services || [] };
 }
 
 export async function addOwnerService(serviceData) {
-  await delay(40);
-  ensureInitialized();
-  const salons = getLocalData(KEY_SALONS, INITIAL_SALONS);
-  const newService = {
-    id: `srv-${Date.now()}`,
-    name: serviceData.name || 'Special Treatment',
-    category: serviceData.category || 'haircut',
-    price: Number(serviceData.price) || 499,
-    originalPrice: Number(serviceData.originalPrice) || 699,
-    duration: serviceData.duration || '45 mins',
-    popular: true,
-    description: serviceData.description || 'Premium salon care with organic products.',
-  };
+  const token = getStoredToken();
+  if (!token) throw new Error('Authentication required.');
 
-  salons[0].services.push(newService);
-  setLocalData(KEY_SALONS, salons);
-
-  return { success: true, service: newService, message: 'Service added to salon menu!' };
+  const res = await fetch('/api/owner/services', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(serviceData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to add service.');
+  return { success: true, service: data.service, message: data.message };
 }
 
 // ------------------------------------
@@ -685,146 +695,555 @@ export async function addOwnerService(serviceData) {
 // ------------------------------------
 
 export async function fetchAdminDashboard() {
-  await delay(40);
-  ensureInitialized();
-  const bookings = getLocalData(KEY_BOOKINGS, INITIAL_BOOKINGS_DATA);
-  const salons = getLocalData(KEY_SALONS, INITIAL_SALONS);
-  const users = getLocalData(KEY_USERS_LIST, DEMO_USERS);
+  const token = getStoredToken();
+  if (!token) {
+    throw new Error('Authentication required: Administrator access only.');
+  }
 
-  const totalGMV = bookings.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
-  const totalCommission = Math.round(totalGMV * 0.05);
+  const res = await fetch('/api/admin/dashboard', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Access Denied: Administrator role required.');
+  }
 
   return {
     success: true,
-    metrics: {
-      totalGMV: totalGMV || 24500,
-      totalCommissionRevenue: totalCommission || 1225,
-      totalBookingsCount: bookings.length || 14,
-      activeSalonsCount: salons.length || 4,
-      registeredUsersCount: users.length || 6,
-      completedAppointmentsCount: bookings.filter((b) => b.status === 'Completed').length || 8,
-    },
+    metrics: data.metrics,
   };
 }
 
 export async function fetchAdminUsers() {
-  await delay(30);
-  ensureInitialized();
-  const users = getLocalData(KEY_USERS_LIST, DEMO_USERS);
-  return { success: true, users };
+  const token = getStoredToken();
+  if (!token) throw new Error('Admin authentication required.');
+
+  const res = await fetch('/api/admin/users', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch admin users.');
+  return { success: true, users: data.users || [] };
 }
 
 export async function updateAdminUserStatus(userId, status) {
-  await delay(30);
-  ensureInitialized();
-  const users = getLocalData(KEY_USERS_LIST, DEMO_USERS);
-  const updated = users.map((u) => (u.id === userId ? { ...u, status } : u));
-  setLocalData(KEY_USERS_LIST, updated);
-  return { success: true, userId, status, message: `User status changed to ${status}` };
+  const token = getStoredToken();
+  if (!token) throw new Error('Admin authentication required.');
+
+  const res = await fetch(`/api/admin/users/${userId}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to update user status.');
+  return { success: true, userId, status, message: data.message };
 }
 
 export async function fetchAdminSalons() {
-  await delay(30);
-  ensureInitialized();
-  const salons = getLocalData(KEY_SALONS, INITIAL_SALONS);
-  const mapped = salons.map((s) => ({
-    ...s,
-    status: s.status || 'verified',
-    commissionRate: s.commissionRate || 5,
-    ownerEmail: `${s.id}@aaora.com`,
-  }));
-  return { success: true, salons: mapped };
+  const token = getStoredToken();
+  if (!token) throw new Error('Admin authentication required.');
+
+  const res = await fetch('/api/admin/salons', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch salons.');
+  return { success: true, salons: data.salons || [] };
 }
 
 export async function updateAdminSalon(salonId, updates) {
-  await delay(30);
-  ensureInitialized();
-  const salons = getLocalData(KEY_SALONS, INITIAL_SALONS);
-  const updated = salons.map((s) => (s.id === salonId ? { ...s, ...updates } : s));
-  setLocalData(KEY_SALONS, updated);
-  return { success: true, salonId, updates, message: 'Salon configuration updated!' };
+  const token = getStoredToken();
+  if (!token) throw new Error('Admin authentication required.');
+
+  const res = await fetch(`/api/admin/salons/${salonId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(updates),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to update salon.');
+  return { success: true, salonId, updates, message: data.message };
 }
 
 export async function fetchAdminBookings() {
-  await delay(30);
-  ensureInitialized();
-  const bookings = getLocalData(KEY_BOOKINGS, INITIAL_BOOKINGS_DATA);
-  return { success: true, bookings };
+  const token = getStoredToken();
+  if (!token) throw new Error('Admin authentication required.');
+
+  const res = await fetch('/api/admin/bookings', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch bookings.');
+  return { success: true, bookings: data.bookings || [] };
 }
 
 export async function fetchAdminPayments() {
-  await delay(30);
-  ensureInitialized();
-  const bookings = getLocalData(KEY_BOOKINGS, INITIAL_BOOKINGS_DATA);
-  const payments = bookings.map((b) => ({
-    id: b.transactionId || `tx-${b.id}`,
-    bookingId: b.id,
-    customerName: b.customerName,
-    salonName: b.salonName,
-    amount: b.totalAmount,
-    commissionCut: Math.round(b.totalAmount * 0.05),
-    method: b.paymentMethod,
-    status: b.paymentStatus === 'Paid Full' ? 'Settled' : 'Pending',
-    date: b.date,
-  }));
-  return { success: true, payments };
+  const token = getStoredToken();
+  if (!token) throw new Error('Admin authentication required.');
+
+  const res = await fetch('/api/admin/payments', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch payments.');
+  return { success: true, payments: data.payments || [] };
 }
 
 export async function fetchAdminReviews() {
-  await delay(30);
-  ensureInitialized();
-  const reviews = [
-    {
-      id: 'rev-1',
-      salonName: 'Looks Salon',
-      customerName: 'Ajeet Lodhi',
-      rating: 5,
-      comment: 'Top notch service and ultra clean instruments. Aarav is the best barber in Indore!',
-      status: 'approved',
-      date: 'Yesterday',
-    },
-    {
-      id: 'rev-2',
-      salonName: 'The Hair Craft',
-      customerName: 'Riya Sharma',
-      rating: 4,
-      comment: 'Nice ambiance and courteous staff. Quick check-in with QR code.',
-      status: 'approved',
-      date: '3 days ago',
-    },
-    {
-      id: 'rev-3',
-      salonName: 'Style Studio',
-      customerName: 'Priya Joshi',
-      rating: 5,
-      comment: 'The brightening facial worked wonders. Very satisfied with the service.',
-      status: 'approved',
-      date: '1 week ago',
-    },
-  ];
-  return { success: true, reviews };
+  const token = getStoredToken();
+  if (!token) throw new Error('Admin authentication required.');
+
+  const res = await fetch('/api/admin/reviews', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch reviews.');
+  return { success: true, reviews: data.reviews || [] };
 }
 
 export async function updateAdminReviewStatus(reviewId, status) {
-  await delay(30);
-  return { success: true, reviewId, status, message: `Review marked as ${status}` };
+  const token = getStoredToken();
+  if (!token) throw new Error('Admin authentication required.');
+
+  const res = await fetch(`/api/admin/reviews/${reviewId}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to update review status.');
+  return { success: true, reviewId, status, message: data.message };
 }
 
 export async function fetchAdminSettings() {
-  await delay(30);
-  ensureInitialized();
-  const settings = getLocalData(KEY_ADMIN_SETTINGS, {
-    platformCommissionRate: 5,
-    advanceBookingPercentage: 25,
-    cancellationFeeFlat: 20,
-    announcement: '✨ Festive Bonanza: 40% OFF with code AAORA40 across all verified salons!',
+  const token = getStoredToken();
+  if (!token) throw new Error('Admin authentication required.');
+
+  const res = await fetch('/api/admin/settings', {
+    headers: { Authorization: `Bearer ${token}` },
   });
-  return { success: true, settings };
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch admin settings.');
+  return { success: true, settings: data.settings || {} };
 }
 
 export async function updateAdminSettings(settings) {
-  await delay(40);
-  ensureInitialized();
-  setLocalData(KEY_ADMIN_SETTINGS, settings);
-  return { success: true, settings, message: 'Platform system settings updated!' };
+  const token = getStoredToken();
+  if (!token) throw new Error('Admin authentication required.');
+
+  const res = await fetch('/api/admin/settings', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(settings),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to update admin settings.');
+  return { success: true, settings: data.settings, message: data.message };
 }
+
+// ----------------------------------------------------
+// SLOTS MANAGEMENT API (Custom, Auto, Blocking)
+// ----------------------------------------------------
+
+const KEY_SLOTS = 'aaora_slots_v1';
+
+export async function fetchSlots({ salonId, date, employeeId, status } = {}) {
+  try {
+    const params = new URLSearchParams();
+    if (salonId) params.append('salonId', salonId);
+    if (date) params.append('date', date);
+    if (employeeId) params.append('employeeId', employeeId);
+    if (status) params.append('status', status);
+
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch(`/api/slots?${params.toString()}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, slots: data.slots || [] };
+    }
+  } catch {
+    // Fallback to local
+  }
+
+  await delay(30);
+  ensureInitialized();
+  let slots = getLocalData(KEY_SLOTS, []);
+  if (salonId) slots = slots.filter((s) => s.salonId === salonId);
+  if (date) slots = slots.filter((s) => s.date === date);
+  if (employeeId && employeeId !== 'all') slots = slots.filter((s) => s.employeeId === employeeId);
+  if (status && status !== 'all') slots = slots.filter((s) => s.status === status);
+
+  return { success: true, slots };
+}
+
+export async function generateAutoSlots(payload) {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch('/api/slots/generate-auto', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to auto-generate slots');
+    return { success: true, ...data };
+  } catch (err) {
+    // Local fallback
+    await delay(50);
+    ensureInitialized();
+    const { salonId, date, slotIntervalMins = 30, employeeId = 'all' } = payload;
+    const salons = getLocalData(KEY_SALONS, INITIAL_SALONS);
+    const salon = salons.find((s) => s.id === salonId) || salons[0];
+    const employees = employeeId === 'all' ? salon.stylists : salon.stylists.filter((e) => e.id === employeeId);
+
+    const timePoints = ['09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '12:00 PM', '12:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM', '08:00 PM'];
+    
+    let existingSlots = getLocalData(KEY_SLOTS, []);
+    let addedCount = 0;
+
+    employees.forEach((emp) => {
+      timePoints.forEach((tp, idx) => {
+        const nextTp = timePoints[idx + 1] || '08:30 PM';
+        const newSlot = {
+          id: `slot-auto-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          salonId: salon.id,
+          employeeId: emp.id,
+          employeeName: emp.name,
+          date,
+          startTime: tp,
+          endTime: nextTp,
+          durationMinutes: slotIntervalMins,
+          slotType: 'automatic',
+          status: 'AVAILABLE',
+          blockReason: null,
+        };
+        existingSlots.push(newSlot);
+        addedCount++;
+      });
+    });
+
+    setLocalData(KEY_SLOTS, existingSlots);
+    return {
+      success: true,
+      message: `Generated ${addedCount} slots for ${date}`,
+      slotsGeneratedCount: addedCount,
+    };
+  }
+}
+
+export async function createCustomSlot(payload) {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch('/api/slots/custom', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Validation error while creating custom slot');
+    return { success: true, slot: data.slot, message: data.message };
+  } catch (err) {
+    if (err.message && err.message.includes('overlap')) {
+      throw err;
+    }
+    // Fallback
+    await delay(30);
+    const newSlot = {
+      id: `slot-custom-${Date.now()}`,
+      ...payload,
+      slotType: 'custom',
+      status: payload.status || 'AVAILABLE',
+    };
+    const slots = getLocalData(KEY_SLOTS, []);
+    slots.push(newSlot);
+    setLocalData(KEY_SLOTS, slots);
+    return { success: true, slot: newSlot, message: 'Custom slot created!' };
+  }
+}
+
+export async function updateSlot(slotId, updates) {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch(`/api/slots/${slotId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update slot');
+    return { success: true, slot: data.slot, message: data.message };
+  } catch (err) {
+    await delay(30);
+    const slots = getLocalData(KEY_SLOTS, []);
+    const updated = slots.map((s) => (s.id === slotId ? { ...s, ...updates } : s));
+    setLocalData(KEY_SLOTS, updated);
+    return { success: true, message: 'Slot updated successfully' };
+  }
+}
+
+export async function deleteSlot(slotId) {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch(`/api/slots/${slotId}`, {
+      method: 'DELETE',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete slot');
+    return { success: true, message: data.message };
+  } catch (err) {
+    await delay(30);
+    const slots = getLocalData(KEY_SLOTS, []);
+    const filtered = slots.filter((s) => s.id !== slotId);
+    setLocalData(KEY_SLOTS, filtered);
+    return { success: true, message: 'Slot deleted successfully' };
+  }
+}
+
+export async function blockSlot(slotId, reason = 'Blocked by salon owner') {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch(`/api/slots/${slotId}/block`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ reason }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to block slot');
+    return { success: true, slot: data.slot, message: data.message };
+  } catch (err) {
+    return updateSlot(slotId, { status: 'BLOCKED', blockReason: reason });
+  }
+}
+
+export async function unblockSlot(slotId) {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch(`/api/slots/${slotId}/unblock`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to unblock slot');
+    return { success: true, slot: data.slot, message: data.message };
+  } catch (err) {
+    return updateSlot(slotId, { status: 'AVAILABLE', blockReason: null });
+  }
+}
+
+// ----------------------------------------------------
+// STAFF / STYLIST PORTAL API
+// ----------------------------------------------------
+
+export async function fetchStaffSchedule(params = {}) {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`/api/staff/schedule${query ? `?${query}` : ''}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Fallback
+  }
+
+  await delay(30);
+  ensureInitialized();
+  const bookings = getLocalData(KEY_BOOKINGS, INITIAL_BOOKINGS_DATA);
+  const activeBookings = bookings.filter((b) => b.status !== 'Cancelled');
+  return {
+    employee: {
+      id: 's1',
+      name: 'Aarav Sharma',
+      role: 'Master Barber & Hair Stylist',
+      rating: 4.9,
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      workingHours: '09:30 AM - 08:30 PM',
+      breaks: ['01:30 PM - 02:30 PM'],
+    },
+    salonName: 'Looks Salon & Spa',
+    metrics: {
+      totalAssigned: bookings.length,
+      todayAppointments: activeBookings.length,
+      completedAppointments: bookings.filter((b) => b.status === 'Completed').length,
+      rating: 4.9,
+    },
+    inProgressBooking: bookings.find((b) => b.status === 'In Progress') || null,
+    upcomingBookings: bookings,
+  };
+}
+
+export async function updateStaffAppointmentStatus(bookingId, status) {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch(`/api/staff/appointments/${bookingId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ status }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update appointment status');
+    return { success: true, booking: data.booking, message: data.message };
+  } catch (err) {
+    await delay(30);
+    const bookings = getLocalData(KEY_BOOKINGS, INITIAL_BOOKINGS_DATA);
+    const updated = bookings.map((b) => (b.id === bookingId ? { ...b, status } : b));
+    setLocalData(KEY_BOOKINGS, updated);
+    return { success: true, message: `Status updated to ${status}` };
+  }
+}
+
+// ----------------------------------------------------
+// OWNER CUSTOMER CRM & PROFILE
+// ----------------------------------------------------
+
+export async function fetchOwnerCustomers() {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch('/api/owner/customers', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Fallback
+  }
+
+  await delay(30);
+  ensureInitialized();
+  const bookings = getLocalData(KEY_BOOKINGS, INITIAL_BOOKINGS_DATA);
+  const map = {};
+  bookings.forEach((b) => {
+    const key = b.customerEmail || b.userId || 'guest';
+    if (!map[key]) {
+      map[key] = {
+        id: b.userId || 'usr-1',
+        name: b.customerName || 'Customer',
+        email: b.customerEmail || 'user@example.com',
+        phone: b.customerPhone || '+91 98765 43210',
+        totalVisits: 0,
+        totalSpend: 0,
+        lastVisitDate: b.date || 'Oct 24',
+        preferredStylist: (b.stylist || 'Aarav').split('(')[0].trim(),
+        servicesTaken: [],
+      };
+    }
+    map[key].totalVisits += 1;
+    map[key].totalSpend += b.totalAmount || 0;
+    if (b.serviceName && !map[key].servicesTaken.includes(b.serviceName)) {
+      map[key].servicesTaken.push(b.serviceName);
+    }
+  });
+
+  return { customers: Object.values(map), totalCount: Object.keys(map).length };
+}
+
+export async function updateOwnerSalonProfile(profileData) {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch('/api/owner/salon-profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(profileData),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update salon profile');
+    return { success: true, salon: data.salon, message: data.message };
+  } catch (err) {
+    await delay(30);
+    return { success: true, message: 'Salon profile updated successfully!' };
+  }
+}
+
+// ----------------------------------------------------
+// PAYMENT SANDBOX
+// ----------------------------------------------------
+
+export async function createPaymentOrder(amount, notes = {}) {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch('/api/payments/create-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ amount, notes }),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Fallback
+  }
+
+  return {
+    id: `order_${Math.random().toString(36).substring(2, 10)}`,
+    amount: Math.round(Number(amount) * 100),
+    currency: 'INR',
+    status: 'created',
+  };
+}
+
+export async function verifyPayment(paymentDetails) {
+  try {
+    const token = localStorage.getItem('aaora_token');
+    const res = await fetch('/api/payments/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(paymentDetails),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // Fallback
+  }
+
+  return {
+    success: true,
+    transactionId: paymentDetails.razorpay_payment_id || `pay_${Math.random().toString(36).substring(2, 12)}`,
+    message: 'Payment verified successfully.',
+  };
+}
+

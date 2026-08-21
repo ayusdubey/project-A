@@ -25,6 +25,7 @@ export default function HomePage({
   onToggleFavorite,
   currentUser,
   onOpenAuth,
+  onLogout,
 }) {
   // Global / Home States
   const [selectedCity, setSelectedCity] = useState('Indore');
@@ -137,6 +138,7 @@ export default function HomePage({
         onOpenProfile={() => setIsProfileDrawerOpen(true)}
         activeFilterGender={selectedGender}
         onNavigate={onNavigate}
+        currentUser={currentUser}
         onFilterGender={(gender) => {
           if (gender === 'men' || gender === 'women') {
             if (onNavigate) onNavigate('gender-services', { gender });
@@ -271,6 +273,7 @@ export default function HomePage({
           setIsProfileDrawerOpen(false);
           setActiveNavTab('home');
         }}
+        currentUser={currentUser}
         bookingsCount={userBookings.length}
         favoritesCount={favoriteSalons.length}
         onOpenBookings={() => {
@@ -289,9 +292,21 @@ export default function HomePage({
           setIsProfileDrawerOpen(false);
           if (onNavigate) onNavigate('owner-dashboard');
         }}
-        onOpenAuth={() => {
+        onOpenStaffPortal={() => {
           setIsProfileDrawerOpen(false);
-          if (onOpenAuth) onOpenAuth('login');
+          if (onNavigate) onNavigate('staff-portal');
+        }}
+        onOpenAdminDashboard={() => {
+          setIsProfileDrawerOpen(false);
+          if (onNavigate) onNavigate('admin-dashboard');
+        }}
+        onOpenAuth={(mode, roleHint) => {
+          setIsProfileDrawerOpen(false);
+          if (onOpenAuth) onOpenAuth(mode || 'login', roleHint);
+        }}
+        onLogout={() => {
+          setIsProfileDrawerOpen(false);
+          if (onLogout) onLogout();
         }}
       />
 
@@ -301,7 +316,14 @@ export default function HomePage({
         onClose={() => setIsSideMenuOpen(false)}
         onNavigate={onNavigate}
         currentUser={currentUser}
-        onOpenAuth={onOpenAuth}
+        onOpenAuth={(mode, roleHint) => {
+          setIsSideMenuOpen(false);
+          if (onOpenAuth) onOpenAuth(mode || 'login', roleHint);
+        }}
+        onLogout={() => {
+          setIsSideMenuOpen(false);
+          if (onLogout) onLogout();
+        }}
         onOpenOffers={() => {
           setIsSideMenuOpen(false);
           if (onNavigate) onNavigate('offers');

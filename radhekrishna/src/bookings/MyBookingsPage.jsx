@@ -29,6 +29,9 @@ import { updateArrivalStatus } from '../lib/api';
 
 export default function MyBookingsPage({
   bookings = [],
+  currentUser = null,
+  isAuthenticated = false,
+  onOpenAuth = null,
   onNavigate,
   onCancelBooking,
   onRescheduleBooking,
@@ -171,6 +174,30 @@ export default function MyBookingsPage({
 
       {/* Main Content Area */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-5">
+        
+        {/* Guest / Unauthenticated Notice Banner */}
+        {!isAuthenticated && (
+          <div className="mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">Signed in as Guest (Device Bookings)</h4>
+                <p className="text-[11px] text-slate-600">
+                  Sign in or register to sync your appointment history, live queue passes, and receipts across all devices.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => onOpenAuth && onOpenAuth('login', 'customer')}
+              className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 whitespace-nowrap self-start sm:self-auto cursor-pointer"
+            >
+              <span>Sign In / Register</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
         
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
